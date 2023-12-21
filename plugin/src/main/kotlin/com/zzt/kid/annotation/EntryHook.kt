@@ -5,5 +5,5 @@ package com.zzt.kid.annotation
 annotation class EntryHook(
     val className: String,
     val methodName: String,
-    val paramsTypes: Array<String>,
+    val paramsTypes: String,
     val ignoreSuper: Boolean = false)
