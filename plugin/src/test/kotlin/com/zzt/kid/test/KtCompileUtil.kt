@@ -6,6 +6,7 @@ import com.tschuchort.compiletesting.SourceFile
 import com.zzt.kid.plugin.KIDComponentRegistrar
 import org.jetbrains.kotlin.compiler.plugin.CompilerPluginRegistrar
 import org.jetbrains.kotlin.compiler.plugin.ExperimentalCompilerApi
+import java.io.File
 
 @OptIn(ExperimentalCompilerApi::class)
 fun compile(

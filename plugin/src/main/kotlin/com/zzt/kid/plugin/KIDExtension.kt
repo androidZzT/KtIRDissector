@@ -9,6 +9,7 @@ import org.jetbrains.kotlin.codegen.ClassBuilderFactory
 import org.jetbrains.kotlin.diagnostics.DiagnosticSink
 import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
+import org.jetbrains.kotlin.ir.util.dump
 import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
 import org.jetbrains.kotlin.ir.visitors.acceptVoid
 import org.jetbrains.kotlin.name.FqName
@@ -21,18 +22,13 @@ class KIDExtension(
 
     override fun generate(moduleFragment: IrModuleFragment, pluginContext: IrPluginContext) {
         val entryHookMetaList = mutableListOf<EntryHookMeta>()
-        println("----- collect entry hook meta -----")
         moduleFragment.acceptChildrenVoid(EntryHookCollector(
             pluginContext,
             entryHookMetaList
         ))
-        println("----- entry hook meta list: $entryHookMetaList -----")
 
         println("----- transform entry hook -----")
-        moduleFragment.files.forEach {irFile ->
-            entryHookMetaList.find { irFile.packageFqName == FqName(it.targetClassName) }?.let {
-                irFile.transform(EntryHookTransformer(pluginContext), it)
-            }
-        }
+        moduleFragment.transform(EntryHookTransformer(pluginContext), entryHookMetaList)
+        println("------ after transform dump IR -------")
     }
 }
