@@ -16,7 +16,6 @@ class EntryHookTest {
     val result = compile(
       sourceFile = SourceFile.kotlin("main.kt", """
         import com.zzt.kid.annotation.EntryHook
-import org.jetbrains.kotlin.com.intellij.psi.JvmCommon
 
         fun main() {
           val logger = Logger()
@@ -30,15 +29,21 @@ import org.jetbrains.kotlin.com.intellij.psi.JvmCommon
             paramsTypes = "(kotlin.String)",
             ignoreSuper = false
           )
-          fun hookLogEntry() {
+          fun hookLogEntry(caller: Logger) {
             val a = 1
             val b = 2
             val c = a + b
             println("before log ${'$'}c")
+            println("caller.name= ${'$'}{caller.name}")
+//            println("caller.private_name= ${'$'}{caller.private_name}")
           }
         }
 
         class Logger {
+          
+          val name = "Logger"
+//          private val private_name = "private"
+        
           fun log(msg: String) {
             println(msg)
           }

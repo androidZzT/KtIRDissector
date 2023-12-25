@@ -8,10 +8,7 @@ import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.backend.common.lower.DeclarationIrBuilder
 import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.IrStatement
-import org.jetbrains.kotlin.ir.builders.irBlock
-import org.jetbrains.kotlin.ir.builders.irBlockBody
-import org.jetbrains.kotlin.ir.builders.irCall
-import org.jetbrains.kotlin.ir.builders.irGetObject
+import org.jetbrains.kotlin.ir.builders.*
 import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrFile
 import org.jetbrains.kotlin.ir.declarations.IrFunction
@@ -70,15 +67,23 @@ class EntryHookTransformer(
       +irCall(entryFunction).apply {
         // 设置参数，这里假设 entryFunction 不需要参数，或者你需要传递适当的参数
         // 例如，如果 entryFunction 需要当前函数的参数，你可以这样设置：
-        val hookInstance = pluginContext.referenceClass(FqName(entryFunction.parentAsClass.name.asString()))
-        hookInstance?.let {
-          dispatchReceiver = irGetObject(hookInstance)
-        }
         // this.dispatchReceiver = irFunction.dispatchReceiverParameter?.let { irGet(it) }
         // this.extensionReceiver = irFunction.extensionReceiverParameter?.let { irGet(it) }
         // irFunction.valueParameters.forEachIndexed { index, irParameter ->
         //     putValueArgument(index, irGet(irParameter))
         // }
+        val hookInstance = pluginContext.referenceClass(FqName(entryFunction.parentAsClass.name.asString()))
+        hookInstance?.let { // 约定：Entry 代码规定必须使用 Object，调用方法需要传入该实例
+          dispatchReceiver = irGetObject(hookInstance)
+        }
+        // 获取 originFunction 的 dispatchReceiver
+        val originDispatchReceiver = irFunction.dispatchReceiverParameter?.let { irGet(it) }
+        entryFunction.valueParameters.forEachIndexed { index, irParameter ->
+          if (index == 0) {
+            putValueArgument(index, originDispatchReceiver) // 约定：原始方法的实例作为第一个参数
+          }
+          //TODO 处理其他加过注解的参数
+        }
       }
 
       // 添加原有函数体的所有语句
