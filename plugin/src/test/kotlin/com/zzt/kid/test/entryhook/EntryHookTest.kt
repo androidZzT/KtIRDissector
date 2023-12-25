@@ -16,6 +16,7 @@ class EntryHookTest {
     val result = compile(
       sourceFile = SourceFile.kotlin("main.kt", """
         import com.zzt.kid.annotation.EntryHook
+        import com.zzt.kid.compile.MethodHook
 
         fun main() {
           val logger = Logger()
@@ -29,13 +30,18 @@ class EntryHookTest {
             paramsTypes = "(kotlin.String)",
             ignoreSuper = false
           )
-          fun hookLogEntry(caller: Logger) {
+          fun hookLogEntry(caller: Logger): MethodHook<Unit> {
             val a = 1
             val b = 2
             val c = a + b
             println("before log ${'$'}c")
             println("caller.name= ${'$'}{caller.name}")
 //            println("caller.private_name= ${'$'}{caller.private_name}")
+            if (c == 4) {
+              return MethodHook.intercept()
+            } else {
+              return MethodHook.pass()
+            }
           }
         }
 

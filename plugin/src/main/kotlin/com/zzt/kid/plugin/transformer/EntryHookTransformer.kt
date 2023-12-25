@@ -1,21 +1,21 @@
 package com.zzt.kid.plugin.transformer
 
+import com.zzt.kid.compile.MethodHook
 import com.zzt.kid.plugin.model.EntryHookMeta
-import com.zzt.kid.utils.costEnter
-import org.jetbrains.kotlin.backend.common.IrElementTransformerVoidWithContext
 import org.jetbrains.kotlin.backend.common.extensions.FirIncompatiblePluginAPI
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.backend.common.lower.DeclarationIrBuilder
-import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.builders.*
 import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrFile
 import org.jetbrains.kotlin.ir.declarations.IrFunction
-import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
-import org.jetbrains.kotlin.ir.expressions.*
-import org.jetbrains.kotlin.ir.expressions.impl.IrBlockBodyImpl
+import org.jetbrains.kotlin.ir.declarations.IrProperty
+import org.jetbrains.kotlin.ir.expressions.IrBlockBody
+import org.jetbrains.kotlin.ir.expressions.IrBody
+import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.types.classFqName
+import org.jetbrains.kotlin.ir.types.classOrFail
 import org.jetbrains.kotlin.ir.util.*
 import org.jetbrains.kotlin.ir.visitors.IrElementTransformer
 import org.jetbrains.kotlin.name.FqName
@@ -41,16 +41,13 @@ class EntryHookTransformer(
       funcName.append(it.type.classFqName)
     }
     funcName.append(")")
-    println("   visitFunction:: funcName: $funcName" )
+//    println("   visitFunction:: funcName: $funcName" )
     data.find { (it.targetMethodName + it.targetMethodParamsTypes).trimIndent() == funcName.toString() }?.let {
       println("   find target function: $funcName")
       println("----- transform function entry -----")
       val body = declaration.body
       body?.let {b ->
         declaration.body = transformFunctionBody(declaration, b, it.entryFunction)
-        (declaration.body as IrBlockBody).statements.forEach {
-          println("   statement: ${it.render()}")
-        }
       }
     }
     return super.visitFunction(declaration, data)
@@ -63,15 +60,12 @@ class EntryHookTransformer(
     entryFunction: IrFunction
   ): IrBlockBody {
     return DeclarationIrBuilder(pluginContext, irFunction.symbol).irBlockBody {
+      if (entryFunction.returnType.classFqName != FqName(MethodHook::class.java.name)) {
+        throw IllegalStateException("your method must return a MethodHook instance, now return ${entryFunction.returnType.classFqName}")
+      }
+
       // 创建对 entryFunction 的调用
-      +irCall(entryFunction).apply {
-        // 设置参数，这里假设 entryFunction 不需要参数，或者你需要传递适当的参数
-        // 例如，如果 entryFunction 需要当前函数的参数，你可以这样设置：
-        // this.dispatchReceiver = irFunction.dispatchReceiverParameter?.let { irGet(it) }
-        // this.extensionReceiver = irFunction.extensionReceiverParameter?.let { irGet(it) }
-        // irFunction.valueParameters.forEachIndexed { index, irParameter ->
-        //     putValueArgument(index, irGet(irParameter))
-        // }
+      val result = irTemporary(irCall(entryFunction).apply {
         val hookInstance = pluginContext.referenceClass(FqName(entryFunction.parentAsClass.name.asString()))
         hookInstance?.let { // 约定：Entry 代码规定必须使用 Object，调用方法需要传入该实例
           dispatchReceiver = irGetObject(hookInstance)
@@ -84,12 +78,37 @@ class EntryHookTransformer(
           }
           //TODO 处理其他加过注解的参数
         }
-      }
+      })
 
-      // 添加原有函数体的所有语句
-      for (statement in irBody.statements) {
-        +statement
-      }
+      // 获取 MethodHook 类的引用
+      val methodHookClass = pluginContext.referenceClass(FqName("com.zzt.kid.compile.MethodHook"))?.owner
+        ?: throw IllegalStateException("MethodHook class not found")
+      // 获取 MethodHook 的 pass 属性
+      val passProperty = methodHookClass.properties.single { it.name.asString() == "pass" }
+      // 创建条件表达式
+      val condition = getProperty(irGet(result), passProperty)
+      println("   condition: ${condition.render()}")
+
+      // 创建条件判断
+      +irIfThenElse(
+        context.irBuiltIns.unitType,
+        condition = condition,  // 使用 pass 属性作为条件
+        thenPart = irBlock {  // 如果 pass 为 true，执行原始函数体
+          for (statement in irBody.statements) {
+            +statement
+          }
+        },
+        elsePart = irBlock {  // 如果 pass 为 false，不执行任何操作或执行替代逻辑
+          // 可以添加替代逻辑或留空
+        }
+      )
+    }
+  }
+
+  private fun IrBlockBodyBuilder.getProperty(receiver: IrExpression, property: IrProperty): IrExpression {
+    val getter = property.getter ?: throw IllegalStateException("Property ${property.name} has no getter")
+    return irCall(getter).apply {
+      dispatchReceiver = receiver
     }
   }
 }

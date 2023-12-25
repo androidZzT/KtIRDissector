@@ -5,11 +5,13 @@ import com.zzt.kid.plugin.model.EntryHookMeta
 import com.zzt.kid.plugin.transformer.EntryHookTransformer
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.backend.jvm.codegen.AnnotationCodegen.Companion.annotationClass
+import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.declarations.*
-import org.jetbrains.kotlin.ir.expressions.IrConst
-import org.jetbrains.kotlin.ir.expressions.IrVararg
+import org.jetbrains.kotlin.ir.expressions.*
+import org.jetbrains.kotlin.ir.util.isFunctionOrKFunction
 import org.jetbrains.kotlin.ir.util.render
 import org.jetbrains.kotlin.ir.visitors.IrElementVisitorVoid
+import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
 
 class EntryHookCollector(
   private val context: IrPluginContext,
@@ -20,6 +22,7 @@ class EntryHookCollector(
     declaration.acceptChildren(this, null)
   }
   override fun visitFile(declaration: IrFile) {
+    //TODO 插件参数指定范围，只处理指定包下的文件，增加编译速度
     declaration.acceptChildren(this, null)
   }
 
@@ -27,9 +30,10 @@ class EntryHookCollector(
     declaration.acceptChildren(this, null)
   }
 
-  override fun visitSimpleFunction(declaration: IrSimpleFunction) {
+  override fun visitFunction(declaration: IrFunction) {
+//    println("visitFunction:: ${declaration.render()}")
     if (declaration.body == null) {
-      super.visitSimpleFunction(declaration)
+      super.visitFunction(declaration)
       return
     }
 
