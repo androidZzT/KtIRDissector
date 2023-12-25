@@ -1,5 +1,6 @@
 package com.zzt.kid.plugin.model
 
+import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.expressions.IrBody
 
 data class EntryHookMeta(
@@ -7,5 +8,5 @@ data class EntryHookMeta(
   val targetMethodName: String,
   val targetMethodParamsTypes: String,
   val ignoreCallSuper: Boolean,
-  val entryIrBody: IrBody
+  val entryFunction: IrFunction
 )

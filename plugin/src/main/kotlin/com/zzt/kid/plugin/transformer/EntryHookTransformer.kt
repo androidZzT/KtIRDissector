@@ -3,12 +3,15 @@ package com.zzt.kid.plugin.transformer
 import com.zzt.kid.plugin.model.EntryHookMeta
 import com.zzt.kid.utils.costEnter
 import org.jetbrains.kotlin.backend.common.IrElementTransformerVoidWithContext
+import org.jetbrains.kotlin.backend.common.extensions.FirIncompatiblePluginAPI
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.backend.common.lower.DeclarationIrBuilder
 import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.builders.irBlock
 import org.jetbrains.kotlin.ir.builders.irBlockBody
+import org.jetbrains.kotlin.ir.builders.irCall
+import org.jetbrains.kotlin.ir.builders.irGetObject
 import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrFile
 import org.jetbrains.kotlin.ir.declarations.IrFunction
@@ -16,10 +19,7 @@ import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
 import org.jetbrains.kotlin.ir.expressions.*
 import org.jetbrains.kotlin.ir.expressions.impl.IrBlockBodyImpl
 import org.jetbrains.kotlin.ir.types.classFqName
-import org.jetbrains.kotlin.ir.util.getAnnotation
-import org.jetbrains.kotlin.ir.util.packageFqName
-import org.jetbrains.kotlin.ir.util.render
-import org.jetbrains.kotlin.ir.util.statements
+import org.jetbrains.kotlin.ir.util.*
 import org.jetbrains.kotlin.ir.visitors.IrElementTransformer
 import org.jetbrains.kotlin.name.FqName
 
@@ -50,7 +50,7 @@ class EntryHookTransformer(
       println("----- transform function entry -----")
       val body = declaration.body
       body?.let {b ->
-        declaration.body = transformFunctionBody(declaration, b, it.entryIrBody)
+        declaration.body = transformFunctionBody(declaration, b, it.entryFunction)
         (declaration.body as IrBlockBody).statements.forEach {
           println("   statement: ${it.render()}")
         }
@@ -59,15 +59,29 @@ class EntryHookTransformer(
     return super.visitFunction(declaration, data)
   }
 
+  @OptIn(FirIncompatiblePluginAPI::class)
   private fun transformFunctionBody(
     irFunction: IrFunction,
     irBody: IrBody,
-    entryBody: IrBody
+    entryFunction: IrFunction
   ): IrBlockBody {
     return DeclarationIrBuilder(pluginContext, irFunction.symbol).irBlockBody {
-      for (statement in entryBody.statements) {
-        +statement
+      // 创建对 entryFunction 的调用
+      +irCall(entryFunction).apply {
+        // 设置参数，这里假设 entryFunction 不需要参数，或者你需要传递适当的参数
+        // 例如，如果 entryFunction 需要当前函数的参数，你可以这样设置：
+        val hookInstance = pluginContext.referenceClass(FqName(entryFunction.parentAsClass.name.asString()))
+        hookInstance?.let {
+          dispatchReceiver = irGetObject(hookInstance)
+        }
+        // this.dispatchReceiver = irFunction.dispatchReceiverParameter?.let { irGet(it) }
+        // this.extensionReceiver = irFunction.extensionReceiverParameter?.let { irGet(it) }
+        // irFunction.valueParameters.forEachIndexed { index, irParameter ->
+        //     putValueArgument(index, irGet(irParameter))
+        // }
       }
+
+      // 添加原有函数体的所有语句
       for (statement in irBody.statements) {
         +statement
       }

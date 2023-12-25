@@ -59,7 +59,7 @@ class EntryHookCollector(
         targetMethodName = methodName,
         targetMethodParamsTypes = paramsTypes,
         ignoreCallSuper = ignoreSuper,
-        entryIrBody = declaration.body!!
+        entryFunction = declaration
       )
       metaList.add(meta)
     }

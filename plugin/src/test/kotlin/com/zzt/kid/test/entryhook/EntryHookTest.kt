@@ -16,13 +16,14 @@ class EntryHookTest {
     val result = compile(
       sourceFile = SourceFile.kotlin("main.kt", """
         import com.zzt.kid.annotation.EntryHook
+import org.jetbrains.kotlin.com.intellij.psi.JvmCommon
 
         fun main() {
           val logger = Logger()
           logger.log("Hello World")
         }
 
-        class LoggerHook {
+        object LoggerHook {
           @EntryHook(
             className = "com.zzt.kid.test.Logger",
             methodName = "log",
