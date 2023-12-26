@@ -1,30 +1,11 @@
 package com.zzt.kid.compile
 
 
-class MethodHook<T> {
-  var pass: Boolean
-  var ret: T? = null
-
-  private constructor(pass: Boolean) {
-    this.pass = pass
-  }
-
-  constructor(ret: T?) {
-    this.ret = ret
-    pass = false
-  }
+class MethodHook<T>(val ret: T? = null) {
+  var pass: Boolean = ret == null
 
   companion object {
-    fun <T> pass(): MethodHook<T> {
-      return MethodHook<T>(true)
-    }
-
-    fun <T> intercept(): MethodHook<T> {
-      return intercept(null)
-    }
-
-    fun <T> intercept(ret: T?): MethodHook<T> {
-      return MethodHook<T>(ret)
-    }
+    fun <T> pass() = MethodHook<T>(null).apply { pass = true }
+    fun <T> intercept(ret: T? = null) = MethodHook(ret)
   }
 }

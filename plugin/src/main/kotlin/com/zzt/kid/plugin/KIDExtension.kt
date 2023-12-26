@@ -30,5 +30,6 @@ class KIDExtension(
         println("----- transform entry hook -----")
         moduleFragment.transform(EntryHookTransformer(pluginContext), entryHookMetaList)
         println("------ after transform dump IR -------")
+        moduleFragment.dump()
     }
 }

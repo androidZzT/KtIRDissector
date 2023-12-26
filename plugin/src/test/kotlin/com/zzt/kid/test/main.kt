@@ -5,7 +5,8 @@ import com.zzt.kid.compile.MethodHook
 
 fun main() {
   val logger = Logger()
-  logger.log("Hello World")
+  val ret = logger.log("Hello World")
+  println("ret= $ret")
 }
 
 class LoggerHook {
@@ -15,13 +16,13 @@ class LoggerHook {
     paramsTypes = "(kotlin.String)",
     ignoreSuper = false
   )
-  fun hookLogEntry(): MethodHook<Unit> {
+  fun hookLogEntry(): MethodHook<Boolean> {
     val a = 1
     val b = 2
     val c = a + b
     println("before log $c")
     if (c == 3) {
-      return MethodHook.intercept()
+      return MethodHook.intercept(false)
     } else {
       return MethodHook.pass()
     }
@@ -29,7 +30,8 @@ class LoggerHook {
 }
 
 class Logger {
-  fun log(msg: String) {
+  fun log(msg: String) : Boolean {
     println(msg)
+    return true;
   }
 }

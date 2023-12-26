@@ -20,7 +20,8 @@ class EntryHookTest {
 
         fun main() {
           val logger = Logger()
-          logger.log("Hello World")
+          val ret = logger.log("Hello World")
+          println("ret= ${'$'}ret")
         }
 
         object LoggerHook {
@@ -30,15 +31,15 @@ class EntryHookTest {
             paramsTypes = "(kotlin.String)",
             ignoreSuper = false
           )
-          fun hookLogEntry(caller: Logger): MethodHook<Unit> {
+          fun hookLogEntry(caller: Logger): MethodHook<Boolean> {
             val a = 1
             val b = 2
             val c = a + b
             println("before log ${'$'}c")
             println("caller.name= ${'$'}{caller.name}")
 //            println("caller.private_name= ${'$'}{caller.private_name}")
-            if (c == 4) {
-              return MethodHook.intercept()
+            if (c == 3) {
+              return MethodHook.intercept(false)
             } else {
               return MethodHook.pass()
             }
@@ -50,8 +51,9 @@ class EntryHookTest {
           val name = "Logger"
 //          private val private_name = "private"
         
-          fun log(msg: String) {
+          fun log(msg: String): Boolean {
             println(msg)
+            return true
           }
         }
       """.trimIndent())

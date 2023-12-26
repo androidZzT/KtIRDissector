@@ -4,6 +4,7 @@ import org.jetbrains.kotlin.backend.common.extensions.FirIncompatiblePluginAPI
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.ir.builders.*
 import org.jetbrains.kotlin.ir.declarations.IrFunction
+import org.jetbrains.kotlin.ir.declarations.IrProperty
 import org.jetbrains.kotlin.ir.declarations.IrValueDeclaration
 import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.expressions.IrExpression
@@ -65,5 +66,12 @@ fun IrBuilderWithScope.costExit(
   }
   return irCall(pluginContext.printlnFunc()).also {
     it.putValueArgument(0, concat)
+  }
+}
+
+fun IrBlockBodyBuilder.getProperty(receiver: IrExpression, property: IrProperty): IrExpression {
+  val getter = property.getter ?: throw IllegalStateException("Property ${property.name} has no getter")
+  return irCall(getter).apply {
+    dispatchReceiver = receiver
   }
 }

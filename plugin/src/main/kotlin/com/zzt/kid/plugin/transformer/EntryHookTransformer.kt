@@ -2,6 +2,7 @@ package com.zzt.kid.plugin.transformer
 
 import com.zzt.kid.compile.MethodHook
 import com.zzt.kid.plugin.model.EntryHookMeta
+import com.zzt.kid.utils.getProperty
 import org.jetbrains.kotlin.backend.common.extensions.FirIncompatiblePluginAPI
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.backend.common.lower.DeclarationIrBuilder
@@ -81,7 +82,7 @@ class EntryHookTransformer(
       })
 
       // 获取 MethodHook 类的引用
-      val methodHookClass = pluginContext.referenceClass(FqName("com.zzt.kid.compile.MethodHook"))?.owner
+      val methodHookClass = pluginContext.referenceClass(FqName(MethodHook::class.java.name))?.owner
         ?: throw IllegalStateException("MethodHook class not found")
       // 获取 MethodHook 的 pass 属性
       val passProperty = methodHookClass.properties.single { it.name.asString() == "pass" }
@@ -98,17 +99,13 @@ class EntryHookTransformer(
             +statement
           }
         },
-        elsePart = irBlock {  // 如果 pass 为 false，不执行任何操作或执行替代逻辑
-          // 可以添加替代逻辑或留空
+        elsePart = irBlock {  // 如果 pass 为 false，返回 MethodHook ret
+          val retProperty = getProperty(irGet(result), methodHookClass.properties.single { it.name.asString() == "ret" })
+          +irReturn(retProperty)
         }
       )
-    }
-  }
-
-  private fun IrBlockBodyBuilder.getProperty(receiver: IrExpression, property: IrProperty): IrExpression {
-    val getter = property.getter ?: throw IllegalStateException("Property ${property.name} has no getter")
-    return irCall(getter).apply {
-      dispatchReceiver = receiver
+    }.also {
+      it.dump()
     }
   }
 }
