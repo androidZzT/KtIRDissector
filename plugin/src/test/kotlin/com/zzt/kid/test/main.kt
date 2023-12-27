@@ -1,6 +1,7 @@
 package com.zzt.kid.test
 
 import com.zzt.kid.annotation.EntryHook
+import com.zzt.kid.annotation.Replace
 import com.zzt.kid.compile.MethodHook
 
 fun main() {
@@ -10,28 +11,24 @@ fun main() {
 }
 
 class LoggerHook {
-  @EntryHook(
+  @Replace(
     className = "com.zzt.kid.test.Logger",
     methodName = "log",
     paramsTypes = "(kotlin.String)",
     ignoreSuper = false
   )
-  fun hookLogEntry(): MethodHook<Boolean> {
-    val a = 1
-    val b = 2
-    val c = a + b
-    println("before log $c")
-    if (c == 3) {
-      return MethodHook.intercept(false)
-    } else {
-      return MethodHook.pass()
+  fun replaceLog(msg: String) {
+    try {
+      println("log in try block")
+      println(msg)
+    } catch (e: Exception) {
+      e.printStackTrace()
     }
   }
 }
 
 class Logger {
-  fun log(msg: String) : Boolean {
+  fun log(msg: String) {
     println(msg)
-    return true;
   }
 }
