@@ -1,3 +1,4 @@
 rootProject.name = 'KtIRDissector'
 include 'plugin'
+include 'annotation'
 

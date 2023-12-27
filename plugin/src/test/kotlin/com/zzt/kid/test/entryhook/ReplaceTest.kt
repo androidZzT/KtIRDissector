@@ -96,6 +96,7 @@ class ReplaceTest {
         
           fun log(msg: String): Boolean {
             println(msg)
+            return true
           }
         }
       """.trimIndent())
