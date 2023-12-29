@@ -1,3 +1,5 @@
+import com.vanniktech.maven.publish.SonatypeHost
+
 buildscript {
     repositories {
         maven{
@@ -12,19 +14,19 @@ buildscript {
     dependencies {
         classpath("com.android.tools.build:gradle:4.1.3")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.20")
+        classpath("com.vanniktech:gradle-maven-publish-plugin:0.26.0")
     }
 }
 
-repositories {
-    mavenCentral()
-}
+subprojects {
+    apply plugin: 'com.vanniktech.maven.publish'
 
-group = 'com.zzt.kid'
-version = '1.0-SNAPSHOT'
+    repositories {
+        mavenCentral()
+    }
 
-ext {
-    kotlin_plugin_id = "com.zzt.kid.plugin"
-    artifactId = "kt-ir-dissector"
-    group = "com.zzt.kid"
-    version = "1.0-SNAPSHOT"
+    mavenPublishing {
+        publishToMavenCentral(SonatypeHost.DEFAULT)
+        signAllPublications()
+    }
 }
