@@ -11,7 +11,7 @@ import java.io.File
 @OptIn(ExperimentalCompilerApi::class)
 fun compile(
   sourceFiles: List<SourceFile>,
-  plugin: CompilerPluginRegistrar = KIDComponentRegistrar(true),
+  plugin: CompilerPluginRegistrar = KIDComponentRegistrar(),
 ): JvmCompilationResult {
   return KotlinCompilation().apply {
     sources = sourceFiles
@@ -23,7 +23,7 @@ fun compile(
 @OptIn(ExperimentalCompilerApi::class)
 fun compile(
   sourceFile: SourceFile,
-  plugin: CompilerPluginRegistrar = KIDComponentRegistrar(true),
+  plugin: CompilerPluginRegistrar = KIDComponentRegistrar(),
 ): JvmCompilationResult {
   return compile(listOf(sourceFile), plugin)
 }

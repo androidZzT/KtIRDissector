@@ -1,4 +1,4 @@
-package com.zzt.kid.compile
+package com.zzt.kid.runtime
 
 
 class MethodHook<T>(val ret: T? = null) {

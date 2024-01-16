@@ -1,7 +1,7 @@
 package com.zzt.kid.plugin.visitor
 
-import com.zzt.kid.annotation.EntryHook
-import com.zzt.kid.annotation.Replace
+import com.zzt.kid.plugin.model.HOOK_ANNOTATION_ENTRY
+import com.zzt.kid.plugin.model.HOOK_ANNOTATION_REPLACE
 import com.zzt.kid.plugin.model.HookMeta
 import com.zzt.kid.plugin.model.HookType
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
@@ -28,7 +28,6 @@ class HookMetaCollector(
   }
 
   override fun visitFunction(declaration: IrFunction) {
-//    println("visitFunction:: ${declaration.render()}")
     if (declaration.body == null) {
       super.visitFunction(declaration)
       return
@@ -36,12 +35,12 @@ class HookMetaCollector(
 
     val hookMetaList = declaration.annotations.map {
       when (it.type.render()) {
-        EntryHook::class.qualifiedName -> {
+        HOOK_ANNOTATION_ENTRY -> {
           val meta = newHookMetaByAnnotation(declaration, it)
           meta.hookType = HookType.ENTRY
           meta
         }
-        Replace::class.qualifiedName -> {
+        HOOK_ANNOTATION_REPLACE -> {
           val meta = newHookMetaByAnnotation(declaration, it)
           meta.hookType = HookType.REPLACE
           meta

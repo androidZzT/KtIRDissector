@@ -1,5 +1,6 @@
 package com.zzt.kid.plugin
 
+import com.google.auto.service.AutoService
 import org.jetbrains.kotlin.compiler.plugin.AbstractCliOption
 import org.jetbrains.kotlin.compiler.plugin.CliOption
 import org.jetbrains.kotlin.compiler.plugin.CommandLineProcessor
@@ -8,6 +9,7 @@ import org.jetbrains.kotlin.config.CompilerConfiguration
 import org.jetbrains.kotlin.config.CompilerConfigurationKey
 
 @OptIn(ExperimentalCompilerApi::class)
+@AutoService(CommandLineProcessor::class)
 class KIDCommandLineProcessor: CommandLineProcessor {
 
     companion object {
@@ -18,7 +20,7 @@ class KIDCommandLineProcessor: CommandLineProcessor {
         val ARG_FILE = CompilerConfigurationKey<String>(OPTION_FILE)
     }
 
-    override val pluginId: String = "com.zzt.kid.plugin"
+    override val pluginId: String = "io.github.androidzzt.kid-plugin"
 
     override val pluginOptions: Collection<AbstractCliOption> = listOf(
         CliOption(
@@ -40,7 +42,7 @@ class KIDCommandLineProcessor: CommandLineProcessor {
         value: String,
         configuration: CompilerConfiguration
     ) {
-        println("processOption:: option=$option value=$value")
+        println("KIDCommandLineProcessor:: processOption:: option=$option value=$value")
         return when (option.optionName) {
             OPTION_STRING -> configuration.put(ARG_STRING, value)
             OPTION_FILE -> configuration.put(ARG_FILE, value)

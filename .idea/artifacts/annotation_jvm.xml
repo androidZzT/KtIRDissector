@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="annotation-jvm">
+    <output-path>$PROJECT_DIR$/annotation/build/libs</output-path>
+    <root id="archive" name="annotation-jvm.jar">
+      <element id="module-output" name="KtIRDissector.annotation.jvmMain" />
+    </root>
+  </artifact>
+</component>

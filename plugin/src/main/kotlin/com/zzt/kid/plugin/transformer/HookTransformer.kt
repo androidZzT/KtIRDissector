@@ -1,12 +1,15 @@
 package com.zzt.kid.plugin.transformer
 
-import com.zzt.kid.compile.MethodHook
 import com.zzt.kid.plugin.model.HookMeta
 import com.zzt.kid.plugin.model.HookType
+import com.zzt.kid.plugin.model.METHOD_HOOK
+import com.zzt.kid.utils.costEnter
 import com.zzt.kid.utils.getProperty
 import org.jetbrains.kotlin.backend.common.extensions.FirIncompatiblePluginAPI
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.backend.common.lower.DeclarationIrBuilder
+import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
+import org.jetbrains.kotlin.cli.common.messages.MessageCollector
 import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.builders.*
 import org.jetbrains.kotlin.ir.declarations.IrClass
@@ -21,6 +24,7 @@ import org.jetbrains.kotlin.name.FqName
 
 class HookTransformer(
   private val pluginContext: IrPluginContext,
+  private val messageCollector: MessageCollector
 ): IrElementTransformer<List<HookMeta>> {
 
   override fun visitFile(declaration: IrFile, data: List<HookMeta>): IrFile {
@@ -28,7 +32,6 @@ class HookTransformer(
   }
 
   override fun visitClass(declaration: IrClass, data: List<HookMeta>): IrStatement {
-    println("visitClass:: ${declaration.packageFqName}.${declaration.name} data: $data")
     return super.visitClass(declaration, data)
   }
 
@@ -40,10 +43,10 @@ class HookTransformer(
       funcName.append(it.type.classFqName)
     }
     funcName.append(")")
-//    println("   visitFunction:: funcName: $funcName" )
+    println("target function: $funcName")
+    messageCollector.report(CompilerMessageSeverity.LOGGING, "funcName: $funcName")
     data.find { (it.targetMethodName + it.targetMethodParamsTypes).trimIndent() == funcName.toString() }?.let {
-      println("   find target function: $funcName")
-      println("----- transform function start -----")
+      messageCollector.report(CompilerMessageSeverity.LOGGING, "find target function: $funcName")
       val body = declaration.body
       body?.let {b ->
         declaration.body = when (it.hookType) {
@@ -70,17 +73,21 @@ class HookTransformer(
   ): IrBlockBody {
     return DeclarationIrBuilder(pluginContext, originFunction.symbol).irBlockBody {
       // 获取 MethodHook 类的引用
-      val methodHookClass = pluginContext.referenceClass(FqName(MethodHook::class.java.name))?.owner
+      val methodHookClass = pluginContext.referenceClass(FqName(METHOD_HOOK))?.owner
         ?: throw IllegalStateException("MethodHook class not found")
-
-      if (function.returnType.classFqName != FqName(MethodHook::class.java.name)) {
-        throw IllegalStateException("your method must return a MethodHook instance, now return ${function.returnType.classFqName}")
-      }
-
+//      if (function.returnType.classFqName != FqName(METHOD_HOOK)) {
+//        throw IllegalStateException("your method must return a MethodHook instance, now return ${function.returnType.classFqName}")
+//      }
+      println("entryTransform function: ${function.render()}")
+//      +irCall(function.symbol).also {
+//        val hookClass = pluginContext.referenceClass(function.parent.fqNameForIrSerialization)
+//        it.dispatchReceiver = irGetObject(hookClass!!)
+//      }
       // 创建对插入 function 的调用
+//      +getInsertFuncIrCall(function, originFunction)
       val result = callInsertFunction(function, originFunction)
       val condition = getMethodHookPassExpression(methodHookClass, result)
-      // 创建条件判断
+//      // 创建条件判断
       +irIfThenElse(
         context.irBuiltIns.unitType,
         condition = condition,  // 使用 pass 属性作为条件
@@ -95,7 +102,7 @@ class HookTransformer(
         }
       )
     }.also {
-      it.dump()
+      println(it.dump())
     }
   }
 
@@ -117,33 +124,39 @@ class HookTransformer(
     insertFunction: IrFunction,
     originFunction: IrFunction
   ): IrVariable {
-    return irTemporary(getInsertFuncIrCall(insertFunction, originFunction))
+    return irTemporary(
+      value = getInsertFuncIrCall(insertFunction, originFunction),
+      nameHint = "returnValue"
+    )
   }
 
   @OptIn(FirIncompatiblePluginAPI::class)
   private fun IrBlockBodyBuilder.getInsertFuncIrCall(
     insertFunction: IrFunction,
     originFunction: IrFunction
-  ): IrFunctionAccessExpression {
-    return irCall(insertFunction).apply {
-      val hookInstance = pluginContext.referenceClass(FqName(insertFunction.parentAsClass.name.asString()))
-      hookInstance?.let { // 约定：Hook 代码规定必须使用 Object，调用方法需要传入该实例
-        dispatchReceiver = irGetObject(hookInstance)
-      }
-      // 获取 originFunction 的 dispatchReceiver
-      val originDispatchReceiver = originFunction.dispatchReceiverParameter?.let { irGet(it) }
+  ): IrCall {
+    return irCall(insertFunction.symbol).also {
+      messageCollector.report(CompilerMessageSeverity.LOGGING, "insertFunction: ${insertFunction.render()}")
+      messageCollector.report(CompilerMessageSeverity.LOGGING, "originFunction: ${originFunction.render()}")
+
+      val hookClass = pluginContext.referenceClass(insertFunction.parent.fqNameForIrSerialization)
+        ?: throw IllegalStateException("Hook class not found")
+      it.dispatchReceiver = irGetObject(hookClass) // 约定：Hook 代码规定必须使用 Object，调用方法需要传入该实例
+
       insertFunction.valueParameters.forEachIndexed { index, _ ->
         if (index == 0) {// 约定：原始方法的实例作为第一个参数
-          putValueArgument(index, originDispatchReceiver)
+          // 获取 originFunction 的 dispatchReceiver
+          val originDispatchReceiver = originFunction.dispatchReceiverParameter?.let { irGet(it) }
+          it.putValueArgument(index, originDispatchReceiver)
         } else {
           if (index - 1 < originFunction.valueParameters.size) { // 约定：原始方法的参数作为后续参数
-            putValueArgument(index, irGet(originFunction.valueParameters[index - 1]))
+            it.putValueArgument(index, irGet(originFunction.valueParameters[index - 1]))
           } else {
             //TODO 处理其他加过注解的参数
           }
         }
       }
-    }
+    } as IrCall
   }
 
   private fun IrBlockBodyBuilder.getMethodHookPassExpression(

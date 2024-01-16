@@ -2,7 +2,7 @@ package com.zzt.kid.test
 
 import com.zzt.kid.annotation.EntryHook
 import com.zzt.kid.annotation.Replace
-import com.zzt.kid.compile.MethodHook
+import com.zzt.kid.runtime.MethodHook
 
 fun main() {
   val logger = Logger()

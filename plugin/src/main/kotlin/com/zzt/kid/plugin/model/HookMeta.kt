@@ -2,6 +2,10 @@ package com.zzt.kid.plugin.model
 
 import org.jetbrains.kotlin.ir.declarations.IrFunction
 
+const val HOOK_ANNOTATION_ENTRY = "com.zzt.kid.annotation.EntryHook"
+const val HOOK_ANNOTATION_REPLACE = "com.zzt.kid.annotation.Replace"
+const val METHOD_HOOK = "com.zzt.kid.runtime.MethodHook"
+
 class HookMeta(
   val targetClassName: String,
   val targetMethodName: String,
