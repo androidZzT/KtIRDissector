@@ -13,7 +13,9 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = 'KtIRDissector'
-include 'plugin'
-include 'annotation'
+rootProject.name = "KtIRDissector"
+include(":plugin")
+include(":annotation")
+
+
 

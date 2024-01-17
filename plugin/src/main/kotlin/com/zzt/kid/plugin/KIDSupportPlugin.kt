@@ -1,5 +1,6 @@
 package com.zzt.kid.plugin
 
+import KtIRDissector.plugin.BuildConfig
 import org.gradle.api.Project
 import org.gradle.api.provider.Provider
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
@@ -8,6 +9,12 @@ import org.jetbrains.kotlin.gradle.plugin.SubpluginArtifact
 import org.jetbrains.kotlin.gradle.plugin.SubpluginOption
 
 class KIDSupportPlugin : KotlinCompilerPluginSupportPlugin {
+
+    private val pluginVersion = BuildConfig.VERSION
+
+    init {
+        println("KIDSupportPlugin:: init:: pluginVersion=$pluginVersion")
+    }
 
     override fun apply(target: Project) {
         super.apply(target)
@@ -27,7 +34,7 @@ class KIDSupportPlugin : KotlinCompilerPluginSupportPlugin {
         return SubpluginArtifact(
             "io.github.androidzzt",
             "kid-plugin",
-            "1.0.8"
+            pluginVersion
         )
     }
 

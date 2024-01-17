@@ -1,0 +1,24 @@
+[versions]
+kotlin = "1.9.21"
+ksp = "1.9.21-1.0.16"
+maven-publish = "0.26.0"
+zacsweers = "0.4.0"
+junit = "5.8.1"
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "maven-publish" }
+buildconfig = { id = "com.github.gmazzo.buildconfig", version = "5.3.5" }
+
+[libraries]
+kotlin-stdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib", version.ref = "kotlin" }
+kotlin-compiler-embeddable = { group = "org.jetbrains.kotlin", name = "kotlin-compiler-embeddable", version.ref = "kotlin" }
+kotlin-gradle-plugin-api = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin-api", version.ref = "kotlin" }
+autoService = "com.google.auto.service:auto-service-annotations:1.1.1"
+autoService-ksp = "dev.zacsweers.autoservice:auto-service-ksp:1.1.0"
+
+kotlin-test-junit = { group = "org.jetbrains.kotlin", name = "kotlin-test-junit", version.ref = "kotlin" }
+junit = { group = "org.junit.jupiter", name = "junit-jupiter", version.ref = "junit" }
+zacswears-test = { group = "dev.zacsweers.kctfork", name = "core", version.ref = "zacsweers" }
