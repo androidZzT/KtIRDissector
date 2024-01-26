@@ -7,6 +7,147 @@ Kotlin IR Dissector(K.I.D) is a tool for transforming Kotlin IR at compile time.
 
 ## Installation
 
+add repositories in settings.gradle 
+```kotlin
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+```
+
+add plugin in project
+```kotlin
+plugins {
+  id("io.github.androidzzt.kid-plugin") version <latest_version>
+}
+```
+
+add anno dependencies in KMP(Kotlin Multiplatform) project
+```kotlin
+kotlin {
+  sourceSets {
+    val commonMain by getting {
+      dependencies {
+        implementation("io.github.androidzzt.kid:kid-annotation:<latest_version>")
+      }
+    }
+  }
+}
+```
+
+add anno dependencies in Android(JVM) project
+```kotlin
+dependencies {
+  implementation("io.github.androidzzt.kid:kid-annotation:<latest_version>")
+}
+```
+
 ## Features
 
-## Sample
+### 1. Hook target method entry
+
+```kotlin   
+@Target(AnnotationTarget.FUNCTION)
+@Retention(AnnotationRetention.SOURCE)
+annotation class EntryHook(
+    val className: String, // target method class name
+    val methodName: String, // target method name
+    val paramsTypes: String, // target method params types, separated by commas
+    val ignoreSuper: Boolean = false // ignore super call
+)
+```
+
+for example, there is a method `com.example.Logger#log`:
+```kotlin
+package com.example
+
+class Logger {
+  val tag = "Logger"
+  fun log(msg: String) {
+    println(msg)
+  }
+}
+```
+
+we want to hook the entry of log method, we can write like this:
+```kotlin
+import com.example.Logger
+import com.zzt.kid.annotation.EntryHook
+import com.zzt.kid.runtime.MethodHook
+
+object LoggerEntryHook {
+  @EntryHook(
+    className = "com.example.Logger",
+    methodName = "log",
+    paramsTypes = "(kotlin.String)" // 注意，这里的参数类型需要加上括号，如果有多个参数，以逗号分隔
+  )
+  fun hookLogEntry(caller: Logger, msg: String): MethodHook<Unit> {
+    println("entry: ${caller.tag}:: msg=$msg")
+    return MethodHook.intercept() // 返回 MethodHook.intercept() 表示拦截目标方法，不再执行
+  }
+}
+```
+
+the `MethodHook` class is defined as follows:
+```kotlin
+class MethodHook<T>(val ret: T? = null) {
+  var pass: Boolean = ret == null
+
+  companion object {
+    fun <T> pass() = MethodHook<T>(null).apply { pass = true }
+    fun <T> intercept(ret: T? = null) = MethodHook(ret)
+  }
+}
+```
+- generic T is the return type of the target method, if the target method has no return type, then T is Unit
+- `MethodHook.pass()` means continue to execute the target method
+- `MethodHook.intercept()` means intercept the target method, if the target method has a return value, you can specify the return value through `MethodHook.intercept(ret)`
+
+after the above code is compiled, the implementation of Logger#log method will become like this:
+```kotlin
+package com.example
+
+class Logger {
+  val tag = "Logger"
+  fun log(msg: String) {
+    val methodHook = LoggerEntryHook.hookLogEntry(this, msg)
+    if (methodHook.pass) {
+      println(msg)
+    }
+  }
+}
+```
+
+### 2. Replace target method completely
+
+```kotlin
+@Target(AnnotationTarget.FUNCTION)
+@Retention(AnnotationRetention.SOURCE)
+annotation class Replace(
+  val className: String, // 目标方法所在类的全限定名
+  val methodName: String, // 目标方法名
+  val paramsTypes: String, // 目标方法参数类型列表，以逗号分隔
+  val ignoreSuper: Boolean = false // 是否忽略调用 super
+)
+```
+
+for example, we think that an exception may occur in the log method, and we want to replace the log method to print the exception information when an exception occurs. We can write like this:
+```kotlin
+object LoggerHook { 
+    @Replace(
+        className = "com.example.Logger",
+        methodName = "log",
+        paramsTypes = "(kotlin.String)"
+    )
+    fun replaceLog(caller: Logger, msg: String) {
+        try {
+          println(msg)
+        } catch (e: Exception) {
+          e.printStackTrace()
+        }
+    }
+}
+```
+Be careful, @Replace does not need to be used with MethodHook. The plugin will completely replace the implementation of the target method with the implementation of the annotation method.
