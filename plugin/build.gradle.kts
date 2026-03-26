@@ -15,6 +15,7 @@ dependencies {
     implementation(libs.autoService)
     ksp(libs.autoService.ksp)
 
+    testImplementation(project(":annotation"))
     testImplementation(libs.junit)
     testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.zacswears.test)

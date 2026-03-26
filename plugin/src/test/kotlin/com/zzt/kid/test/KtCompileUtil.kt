@@ -6,7 +6,8 @@ import com.tschuchort.compiletesting.SourceFile
 import com.zzt.kid.plugin.KIDComponentRegistrar
 import org.jetbrains.kotlin.compiler.plugin.CompilerPluginRegistrar
 import org.jetbrains.kotlin.compiler.plugin.ExperimentalCompilerApi
-import java.io.File
+import java.io.ByteArrayOutputStream
+import java.io.PrintStream
 
 @OptIn(ExperimentalCompilerApi::class)
 fun compile(
@@ -26,4 +27,18 @@ fun compile(
   plugin: CompilerPluginRegistrar = KIDComponentRegistrar(),
 ): JvmCompilationResult {
   return compile(listOf(sourceFile), plugin)
+}
+
+fun captureOutput(block: () -> Unit): String {
+  val baos = ByteArrayOutputStream()
+  val ps = PrintStream(baos)
+  val originalOut = System.out
+  System.setOut(ps)
+  try {
+    block()
+  } finally {
+    ps.flush()
+    System.setOut(originalOut)
+  }
+  return baos.toString().trim()
 }

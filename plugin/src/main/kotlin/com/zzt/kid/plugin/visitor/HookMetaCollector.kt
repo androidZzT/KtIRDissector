@@ -1,6 +1,7 @@
 package com.zzt.kid.plugin.visitor
 
 import com.zzt.kid.plugin.model.HOOK_ANNOTATION_ENTRY
+import com.zzt.kid.plugin.model.HOOK_ANNOTATION_EXIT
 import com.zzt.kid.plugin.model.HOOK_ANNOTATION_REPLACE
 import com.zzt.kid.plugin.model.HookMeta
 import com.zzt.kid.plugin.model.HookType
@@ -38,6 +39,11 @@ class HookMetaCollector(
         HOOK_ANNOTATION_ENTRY -> {
           val meta = newHookMetaByAnnotation(declaration, it)
           meta.hookType = HookType.ENTRY
+          meta
+        }
+        HOOK_ANNOTATION_EXIT -> {
+          val meta = newHookMetaByAnnotation(declaration, it)
+          meta.hookType = HookType.EXIT
           meta
         }
         HOOK_ANNOTATION_REPLACE -> {

@@ -3,7 +3,7 @@
 
 <a href="https://github.com/androidZzT/KtIRDissector/blob/main/README.md">简体中文</a> | <a href="https://github.com/androidZzT/KtIRDissector/blob/main/README_EN.md">English</a>
 
-Kotlin IR Dissector(K.I.D) is a tool for transforming Kotlin IR at compile time. You can write kotlin code directly in the project to hook the entry and exit of the target method or completely replace the target method.
+Kotlin IR Dissector(K.I.D) is a tool for transforming Kotlin IR at compile time. You can write kotlin code directly in the project to hook the entry or exit of a target method, or completely replace it — with zero runtime overhead.
 
 ## Installation
 
@@ -92,18 +92,17 @@ object LoggerEntryHook {
 
 the `MethodHook` class is defined as follows:
 ```kotlin
-class MethodHook<T>(val ret: T? = null) {
-  var pass: Boolean = ret == null
-
+class MethodHook<T> private constructor(val ret: T?, val pass: Boolean) {
   companion object {
-    fun <T> pass() = MethodHook<T>(null).apply { pass = true }
-    fun <T> intercept(ret: T? = null) = MethodHook(ret)
+    fun <T> pass() = MethodHook<T>(null, true)
+    fun <T> intercept(ret: T? = null) = MethodHook(ret, false)
   }
 }
 ```
-- generic T is the return type of the target method, if the target method has no return type, then T is Unit
-- `MethodHook.pass()` means continue to execute the target method
-- `MethodHook.intercept()` means intercept the target method, if the target method has a return value, you can specify the return value through `MethodHook.intercept(ret)`
+- generic T is the return type of the target method; use `Unit` when the target method returns nothing
+- `MethodHook.pass()` — continue executing the original method
+- `MethodHook.intercept()` — skip the original method (returns Unit)
+- `MethodHook.intercept(value)` — skip the original method and return `value` instead
 
 after the above code is compiled, the implementation of Logger#log method will become like this:
 ```kotlin
@@ -151,3 +150,84 @@ object LoggerHook {
 }
 ```
 Be careful, @Replace does not need to be used with MethodHook. The plugin will completely replace the implementation of the target method with the implementation of the annotation method.
+
+### 3. Hook target method exit
+
+```kotlin
+@Target(AnnotationTarget.FUNCTION)
+@Retention(AnnotationRetention.SOURCE)
+annotation class ExitHook(
+    val className: String,    // target class fully-qualified name
+    val methodName: String,   // target method name
+    val paramsTypes: String,  // target method parameter types (e.g. "(kotlin.String)")
+    val ignoreSuper: Boolean = false
+)
+```
+
+`@ExitHook` is called **after** the original method finishes executing. It is useful for audit logging, performance monitoring, cleanup, etc.
+
+For example, to log whenever `Logger#log` returns:
+```kotlin
+import com.example.Logger
+import com.zzt.kid.annotation.ExitHook
+
+object LoggerExitHook {
+  @ExitHook(
+    className = "com.example.Logger",
+    methodName = "log",
+    paramsTypes = "(kotlin.String)"
+  )
+  fun onExitLog(caller: Logger, msg: String) {
+    println("log() finished — caller=${caller.tag}, msg=$msg")
+  }
+}
+```
+
+**Convention** (same as `@EntryHook`):
+- The hook method must be inside an `object` declaration.
+- The first parameter is the receiver instance.
+- Remaining parameters match the original method's parameter list.
+
+After compilation, `Logger#log` behaves as if written:
+```kotlin
+fun log(msg: String) {
+  println(msg)                       // original body runs first
+  LoggerExitHook.onExitLog(this, msg) // exit hook called after
+}
+```
+
+## Conventions & Constraints
+
+| Rule | Detail |
+|------|--------|
+| Hook container | Must be an `object`, not a `class` |
+| First parameter | Always the receiver (the `this` of the hooked method) |
+| Other parameters | Match the original method's parameter list in order |
+| `@EntryHook` return type | Must be `MethodHook<T>` where T matches the original return type |
+| `@ExitHook` return type | Ignored — use `Unit` |
+| `@Replace` return type | Must match the original method's return type |
+| `paramsTypes` format | `"(type1type2...)"` — fully-qualified names concatenated, no separator |
+
+### paramsTypes examples
+
+| Original method | paramsTypes |
+|-----------------|-------------|
+| `fun log(msg: String)` | `"(kotlin.String)"` |
+| `fun add(a: Int, b: Int)` | `"(kotlin.Intkotlin.Int)"` |
+| `fun run()` | `"()"` |
+| `fun process(s: String, n: Int)` | `"(kotlin.Stringkotlin.Int)"` |
+
+## Sample Project
+
+See the `sample/` directory for complete examples demonstrating all three hook types.
+
+To run the sample:
+```bash
+# 1. Publish to mavenLocal
+./gradlew publishToMavenLocal
+
+# 2. Uncomment include(":sample") in settings.gradle.kts
+
+# 3. Run
+./gradlew :sample:run
+```

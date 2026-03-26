@@ -1,11 +1,9 @@
 package com.zzt.kid.runtime
 
-
-class MethodHook<T>(val ret: T? = null) {
-  var pass: Boolean = ret == null
+class MethodHook<T> private constructor(val ret: T?, val pass: Boolean) {
 
   companion object {
-    fun <T> pass() = MethodHook<T>(null).apply { pass = true }
-    fun <T> intercept(ret: T? = null) = MethodHook(ret)
+    fun <T> pass() = MethodHook<T>(null, true)
+    fun <T> intercept(ret: T? = null) = MethodHook(ret, false)
   }
 }
